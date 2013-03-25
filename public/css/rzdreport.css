@@ -1,0 +1,28 @@
+﻿
+.rzdreport tr.level_1
+{
+    background-color : #aaaaaa; line-height : 17px
+}
+
+.rzdreport tr.level_2
+{
+    background-color : #cccccc; line-height : 15px
+}
+
+
+.rzdreport tr.level_3 
+{
+    background-color : #ffffff;  line-height : 13px
+}
+
+
+.rzdreport tr.level_4
+{
+    background-color : #dddddd; line-height : 12px
+}
+
+.rzdreport tr.level_5
+{
+    line-height : 12px;
+    background-color : #eeeeee;
+}
