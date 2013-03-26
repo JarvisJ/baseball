@@ -240,7 +240,7 @@ function updateBatterViz(data) {
       .attr("MLBID", function(d) { 
          return "" + d.MLBAM_ID;
       })
-      .on("mouseover",showPitcherData)
+      .on("mouseover",showPlayerData)
       .style("fill", fillCircles);
 
 
@@ -289,7 +289,7 @@ function updatePitcherViz(data) {
       .attr("MLBID", function(d) { 
          return "" + d.MLBAM_ID;
       })
-      .on("mouseover",showPlayerData)
+      .on("mouseover",showPitcherData)
       .style("fill", fillCircles);
 
 
@@ -442,13 +442,32 @@ function rowMouseOver(clink,level,element) {
        var fillColor = "black";
        var playerID = clink.replace("-","");
        var metricVal = undefined;
-       hierarchData.level_2.forEach(function(f){
-          if(playerID === ""+f.MLBAM_ID) {
-            metricVal = f[myMetric.fieldName];
-            showPlayerData(f);
-          }
-       });
-        
+       
+       
+            if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
+            	if(  mlbData.pitchers["ySpring"].pHash[playerID] ) {
+            		showPitcherData(mlbData.pitchers["ySpring"].pHash[playerID] );
+            	}
+            }
+            else {
+            	if(  mlbData.batters["ySpring"].pHash[playerID] ) {
+            		showPlayerData(mlbData.batters["ySpring"].pHash[playerID] );
+            	}
+            	
+            }       	 
+       
+       
+       // hierarchData.level_2.forEach(function(f){
+          // if(playerID === ""+f.MLBAM_ID) {
+            // metricVal = f[myMetric.fieldName];
+            // if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
+            // }
+            // else {
+            	// showPlayerData(f);
+            // }
+          // }
+       // });
+        // 
        //  counties.selectAll("path").style("stroke-width", "0.0px");
        
        
