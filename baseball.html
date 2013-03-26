@@ -35,13 +35,13 @@ border: 1px solid black;
 <link href="css/rzdreport.css" type="text/css" rel="stylesheet" /> 
 <link href="css/brand.css" type="text/css" rel="stylesheet" /> 
 <link href="css/jquery-ui.css" type="text/css" rel="stylesheet" />
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+
 <body>
 
 <div id="tabs">
-    <ul>
-        <li><a href="#tabs-1">Batters</a></li>
-        <li><a href="#tabs-2">Pitchers</a></li>
-        <li><table>
+    <table>
     <tr>       
         <td  align="center">
             <table  class="tbltxt" style=" border-width : 1px; border-style: solid ; border-color : #000000; " cellspacing="1" cellpadding="1" >
@@ -66,11 +66,11 @@ border: 1px solid black;
                     </td>                                                                                                                                                                
                 </tr>
             </table>
-        </td>        
+        </td>
+	<td><div id='googNews' ></div></td>        
     </tr>
 </table></li>
     </ul>
-    <div id="tabs-1">
         <table style=" width :100%; ">
             <tr>
                 <td style=" vertical-align:top; ">
@@ -94,16 +94,31 @@ border: 1px solid black;
                 </td>
             </tr>
         </table>
-    </div>
-    <div id="tabs-2">
-        To be developed
-    </div>  
 </div>
  
 <script>
-    $(function() {
-        $( "#tabs" ).tabs();
-    });
+        google.load("elements", "1", {packages : ["newsshow"]});
+
+          var content;
+           var newsShow;
+function onLoad() {
+  // Load it using all of the defaults.
+  var options = {
+    "queryList" : [
+      {
+        "title" : "Fantasy Baseball",
+        "q" : "Fantasy Baseball"
+      }
+    ]
+  }
+  content = document.getElementById('googNews');
+  newsShow = new google.elements.NewsShow(content, options);
+}
+
+google.setOnLoadCallback(onLoad);
+        
+
+
 var colorGradRYG = ["rgb(230,97,1)","rgb(253,184,99)","rgb(255,255,191)","rgb(184,225,134)","rgb(77,172,38)"];
 var measurementPulldown = d3.select("#measurementPulldown");
 var yearPulldown = d3.select("#yearPulldown");
@@ -370,6 +385,17 @@ function showPlayerData(d) {
         }); 
        
        
+        
+	  var newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :  d.nameFirst  + " " + d.nameLast ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball"
+	      }
+	    ]
+	  }
+	  d3.selectAll(".gns-root").remove();
+	  newsShow = new google.elements.NewsShow(content, newsOptions);
 }
 
 function showPitcherData(d) {
@@ -398,7 +424,16 @@ function showPitcherData(d) {
          //   expandLevel(2);
         }); 
        
-       
+	  var newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :  d.nameFirst  + " " + d.nameLast ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball"
+	      }
+	    ]
+	  }
+	  d3.selectAll(".gns-root").remove();
+	  newsShow = new google.elements.NewsShow(content, newsOptions);       
 }
 
 function getMLBBatterData(year, dat) { 
@@ -442,16 +477,18 @@ function rowMouseOver(clink,level,element) {
        var fillColor = "black";
        var playerID = clink.replace("-","");
        var metricVal = undefined;
-       
+       var rFunction;
        
             if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
             	if(  mlbData.pitchers["ySpring"].pHash[playerID] ) {
             		showPitcherData(mlbData.pitchers["ySpring"].pHash[playerID] );
+            		rFunction= function(d) { return Math.sqrt(d.mW)*2; }
             	}
             }
             else {
             	if(  mlbData.batters["ySpring"].pHash[playerID] ) {
             		showPlayerData(mlbData.batters["ySpring"].pHash[playerID] );
+            		rFunction= function(d) { return Math.sqrt(d.mSB)*2; }
             	}
             	
             }       	 
@@ -497,14 +534,21 @@ function rowMouseOver(clink,level,element) {
             
         svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
                         .style("stroke-width", "1px") 
-                        .attr("r",  function(d) { return Math.sqrt(d.mSB)*2; })                             
+                        .attr("r",  rFunction)                             
                         .style("fill", fillColor);    
     }    
     if(level==1) {
        var fillColor = "black";
-  
+       var rFunction;
        var metricVal = hierarchData.level_1[0][myMetric.fieldName];
        
+       if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
+      	 rFunction= function(d) { return Math.sqrt(d.mW)*2; }
+       }
+       else {
+            rFunction= function(d) { return Math.sqrt(d.mSB)*2; }
+        }      
+            
        if(metricVal != undefined) {
              var slot = myMetric.lowValGreen? 4 : 0; // Math.max(Math.floor((district[myMetric.fieldName]-myMetric.fivePctVal)/((myMetric.ninetyFivePctVal-myMetric.fivePctVal)/100)),0);
         
@@ -534,7 +578,7 @@ function rowMouseOver(clink,level,element) {
         // fillColor = "brown";       
         svg.selectAll("[pos='"+clink.replace("-","")+"']")
                         .style("stroke-width", "0.3px") 
-                        .attr("r",  function(d) { return Math.sqrt(d.mSB)*2; })                     
+                        .attr("r",  rFunction)                     
                         .style("fill", "red");    
     }       
 }
@@ -547,9 +591,16 @@ function rowMouseOut(clink,level,element) {
                         .style("fill", fillCircles  );        
     }       
     if(level==1) {
+       var rFunction;
+       if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
+       	       rFunction= function(d) { return Math.sqrt(d.mW)*2; }
+       }
+       else {
+            rFunction= function(d) { return Math.sqrt(d.mSB)*2; }
+       }     	    
         svg.selectAll("[pos='"+clink.replace("-","")+"']")
                         .style("stroke-width", "0.3px") 
-                        .attr("r",  function(d) { return Math.sqrt(d.mSB); })                     
+                        .attr("r",  rFunction)                     
                         .style("fill",  fillCircles);      
     }         
 }
@@ -614,6 +665,7 @@ function createBatterReport(data) {
   metric.colorCode = true;  
   metricList.push(metric);         
   
+    measurementPulldown.selectAll("option").remove();
    measurementPulldown.selectAll("option")
       .data(metricList).enter()
        .append("option") 
@@ -706,13 +758,16 @@ function createPitcherReport(data) {
   metric = new ReportMetric("mDERA","ERA", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
+  metric.lowValGreen = true;  
   metricList.push(metric);
   
   metric = new ReportMetric("mWHIP","WHIP", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;
+  metric.lowValGreen = true;  
   metricList.push(metric);     
   
+    measurementPulldown.selectAll("option").remove();  
    measurementPulldown.selectAll("option")
       .data(metricList).enter()
        .append("option") 
@@ -722,32 +777,7 @@ function createPitcherReport(data) {
          .attr("label",function(d){return d.header});            
   measurementPulldown.on("change", updateColors);        
       
-  var yearList = [{"fieldName": "2013","header":"2013 Projections"},
-  	  					{"fieldName": "2012","header":"2012 Actuals"}, 
-  	  					{"fieldName": "2011","header":"2011 Actuals"},
-						{"fieldName": "Spring","header":"Spring Training 2013"}  	];  	  	  					
-  yearPulldown.selectAll("option")
-      .data(yearList).enter()
-       .append("option") 
-         .attr("value",function(d,i){
-                return d.fieldName;
-                  })
-         .attr("label",function(d){return d.header});   
-         
-  yearPulldown.on("change", updateYear); 
   
-  var posList = [{"fieldName": "batters","header":"Batters"},
-  	  					{"fieldName": "pitchers","header":"Pitchers"} ];  	  	  					
-  posPulldown.selectAll("option")
-      .data(posList).enter()
-       .append("option") 
-         .attr("value",function(d,i){
-                return d.fieldName;
-                  })
-         .attr("label",function(d){return d.header});   
-         
-  posPulldown.on("change", updatePosition);    
-
   //$("#mainSVG").after("<h5>hi</h5>");
   
   
