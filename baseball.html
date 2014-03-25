@@ -68,6 +68,7 @@ border: 1px solid black;
             </table>
         </td>
 	<td><div id='googNews' ></div></td>        
+	<td><div id='googNewsI' ></div></td>    
     </tr>
 </table></li>
     </ul>
@@ -113,6 +114,17 @@ function onLoad() {
   }
   content = document.getElementById('googNews');
   newsShow = new google.elements.NewsShow(content, options);
+
+  options = {
+    "queryList" : [
+      {
+        "title" : "Closers",
+        "q" : "Baseball Closers"
+      }
+    ]
+  }
+  content = document.getElementById('googNewsI');
+  newsShowI = new google.elements.NewsShow(content, options);  
 }
 
 google.setOnLoadCallback(onLoad);
@@ -371,11 +383,11 @@ function showPlayerData(d) {
         statsTable += getMLBBatterData("Spring", d);
         d3.select("#hoverDiv")
               .attr("class","h2text")
-            //  .style("position","absolute")
-            //  .style("left","800px")
-           //   .style("top","400px")
+               .style("position","absolute")
+               .style("left",mouseX)
+               .style("top",mouseY)
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
+              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
 
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
@@ -385,7 +397,7 @@ function showPlayerData(d) {
         }); 
        
        
-        
+	 content = document.getElementById('googNews');
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -396,6 +408,17 @@ function showPlayerData(d) {
 	  }
 	  d3.selectAll(".gns-root").remove();
 	  newsShow = new google.elements.NewsShow(content, newsOptions);
+
+	 content = document.getElementById('googNewsI');	  
+	  newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :  d.nameLast + " Injury?" ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
+	      }
+	    ]
+	  }
+	  newsShowI = new google.elements.NewsShow(content, newsOptions);
 }
 
 function showPitcherData(d) {
@@ -415,7 +438,7 @@ function showPitcherData(d) {
             //  .style("left","800px")
            //   .style("top","400px")
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
+              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
 
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
@@ -424,6 +447,7 @@ function showPitcherData(d) {
          //   expandLevel(2);
         }); 
        
+       	  content = document.getElementById('googNews');
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -433,7 +457,17 @@ function showPitcherData(d) {
 	    ]
 	  }
 	  d3.selectAll(".gns-root").remove();
+	  content = document.getElementById('googNewsI');	  
 	  newsShow = new google.elements.NewsShow(content, newsOptions);       
+	  newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :   d.nameLast + " Injury?" ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
+	      }
+	    ]
+	  }
+	  newsShowI = new google.elements.NewsShow(content, newsOptions);	  
 }
 
 function getMLBBatterData(year, dat) { 
@@ -532,10 +566,12 @@ function rowMouseOver(clink,level,element) {
          fillColor = "black";    
        }
             
-        svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
-                        .style("stroke-width", "1px") 
-                        .attr("r",  rFunction)                             
-                        .style("fill", fillColor);    
+      //  svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
+      //                  .style("stroke-width", "1px") 
+      //                  .attr("r",  rFunction)                             
+      //                  .style("fill", fillColor);    
+      
+                          
     }    
     if(level==1) {
        var fillColor = "black";
@@ -576,10 +612,15 @@ function rowMouseOver(clink,level,element) {
        //  counties.selectAll("path").style("stroke-width", "0.0px");
             
         // fillColor = "brown";       
-        svg.selectAll("[pos='"+clink.replace("-","")+"']")
-                        .style("stroke-width", "0.3px") 
-                        .attr("r",  rFunction)                     
-                        .style("fill", "red");    
+     //   svg.selectAll("[pos='"+clink.replace("-","")+"']")
+     //                   .style("stroke-width", "0.3px") 
+      //                  .attr("r",  rFunction)                     
+      //                  .style("fill", "red");    
+                        
+        svg.selectAll("[pos]")              
+                        .style("display", "none");        
+        svg.selectAll("[pos='"+clink.replace("-","")+"']")             
+                        .style("display", "");                           
     }       
 }
 
@@ -822,6 +863,8 @@ function updateColors() {
    d3.select("h2 span").text( measurementPulldown[0][0].options[measurementPulldown[0][0].selectedIndex].text) ;
  //  YTD Pct Growth -- Dealer Purchases (yellow ~100%, green >100%, red <100%)
    
+        svg.selectAll("[pos]")             
+                        .style("display", "");     
 }
 
 function fillCircles(d) {
