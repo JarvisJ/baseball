@@ -68,6 +68,7 @@ border: 1px solid black;
             </table>
         </td>
 	<td><div id='googNews' ></div></td>        
+	<td><div id='googNewsI' ></div></td>   	
     </tr>
 </table></li>
     </ul>
@@ -113,6 +114,17 @@ function onLoad() {
   }
   content = document.getElementById('googNews');
   newsShow = new google.elements.NewsShow(content, options);
+  
+  options = {
+    "queryList" : [
+      {
+        "title" : "Closers",
+        "q" : "Baseball Closers"
+      }
+    ]
+  }
+  content = document.getElementById('googNewsI');
+  newsShowI = new google.elements.NewsShow(content, options);    
 }
 
 google.setOnLoadCallback(onLoad);
@@ -154,73 +166,80 @@ var svg = d3.select("#viz").append("svg")
 
     var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[],"y2014":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": [],"y2014":[]} };
  
-    
+var exclusionList;
 
-    
-d3.json("/bb/batters/2014", function(error, data) {	
-		mlbData.batters["y2014"].pHash = {};
-  data.forEach(function(d) {
-    d.mHR = +d.mHR;
-    d.mAVG = +d.mAVG;
-    mlbData.batters["y2014"].pHash[d.MLBAM_ID] = d;
-    mlbData.batters["y2014"].push(d);
-  });
-  
-	d3.json("/bb/batters/2013", function(error, data) {
-			cleanseMLBBatterData(2013,data);
-	});
-	
-	d3.json("/bb/batters/2012", function(error, data) {
-			cleanseMLBBatterData(2012,data);
-	});
-	
-	d3.json("/bb/batters/2011", function(error, data) {
-			cleanseMLBBatterData(2011,data);
-	});
-	
-	d3.json("/bb/batters/Spring", function(error, data) {
-			cleanseMLBBatterData("Spring",data);
-	});	
-	
-  updateBatterViz(data);
 
-});
-
-d3.json("/bb/pitchers/2014", function(error, data) {	
-		mlbData.pitchers["y2014"].pHash = {};
-  data.forEach(function(d) {
-    d.mDERA = +d.mDERA;
-    d.mSOA = +d.mSOA;
-    d.pos = d.POS;
-    
-    if(!d.pos || d.pos =="") {
-    	return; 
-    }
-    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
-    mlbData.pitchers["y2014"].push(d);
-  });
-  
-	d3.json("/bb/pitchers/2013", function(error, data) {
-			cleanseMLBPitcherData(2013,data);
-	});
+d3.json("/bb/exclusionList", function(error,eData) {    
+	exclusionList = eData;
+	d3.json("/bb/batters/2014", function(error, data) {	
+			mlbData.batters["y2014"].pHash = {};
+	  data.forEach(function(d) {
+	    d.mHR = +d.mHR;
+	    d.mAVG = +d.mAVG;
+	    mlbData.batters["y2014"].pHash[d.MLBAM_ID] = d;
+	    mlbData.batters["y2014"].push(d);
+	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 
+	  });
+ 	  updateBatterViz(data);
 	  
-	d3.json("/bb/pitchers/2012", function(error, data) {
-			cleanseMLBPitcherData(2012,data);
-	});
-	
-	d3.json("/bb/pitchers/2011", function(error, data) {
-			cleanseMLBPitcherData(2011,data);
-	});
-	
-	d3.json("/bb/pitchers/Spring", function(error, data) {
-			cleanseMLBPitcherData("Spring",data);
-	});	
-	
-  // updatePitcherViz(data);
+	  
+		d3.json("/bb/batters/2013", function(error, data) {
+				cleanseMLBBatterData(2013,data);
+		});
+		
+		d3.json("/bb/batters/2012", function(error, data) {
+				cleanseMLBBatterData(2012,data);
+		});
+		
+		d3.json("/bb/batters/2011", function(error, data) {
+				cleanseMLBBatterData(2011,data);
+		});
+		
+		d3.json("/bb/batters/Spring", function(error, data) {
+				cleanseMLBBatterData("Spring",data);
+		});	
+		
 
+	
+	});
+	
+	d3.json("/bb/pitchers/2014", function(error, data) {	
+			mlbData.pitchers["y2014"].pHash = {};
+	  data.forEach(function(d) {
+	    d.mDERA = +d.mDERA;
+	    d.mSOA = +d.mSOA;
+	    d.pos = d.POS;
+	    
+	    if(!d.pos || d.pos =="") {
+		return; 
+	    }
+	    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
+	    mlbData.pitchers["y2014"].push(d);
+	  });
+	  
+		d3.json("/bb/pitchers/2013", function(error, data) {
+				cleanseMLBPitcherData(2013,data);
+		});
+		  
+		d3.json("/bb/pitchers/2012", function(error, data) {
+				cleanseMLBPitcherData(2012,data);
+		});
+		
+		d3.json("/bb/pitchers/2011", function(error, data) {
+				cleanseMLBPitcherData(2011,data);
+		});
+		
+		d3.json("/bb/pitchers/Spring", function(error, data) {
+				cleanseMLBPitcherData("Spring",data);
+		});	
+		
+	  // updatePitcherViz(data);
+	
+	});
 });
 
-function updateBatterViz(data) {
+function updateBatterViz(unfilteredData) {
+   data = unfilteredData.filter(function(d){ return !isPlayerExcluded(d); });
    d3.selectAll(".axis").remove();
    d3.selectAll(".dot").remove();
 
@@ -269,7 +288,9 @@ function updateBatterViz(data) {
 
 }
 
-function updatePitcherViz(data) {
+function updatePitcherViz(unfilteredData) {
+   data = unfilteredData.filter(function(d){ return !isPlayerExcluded(d); })
+
    d3.selectAll(".axis").remove();
    d3.selectAll(".dot").remove();
 
@@ -302,7 +323,7 @@ function updatePitcherViz(data) {
 
   svg.selectAll(".dot")
       .data(data)
-    .enter().append("circle")
+    .enter().append("circle")   
       .attr("class", "dot")
       .attr("r",  function(d) { return d.mW; })
       .attr("cx", function(d) { return x(d.mDERA); })
@@ -322,48 +343,56 @@ function updatePitcherViz(data) {
 function cleanseMLBBatterData(year,data) {
 	mlbData.batters["y" + year].pHash = {};
 	data.forEach(function(d) {
-	    d.MLBAM_ID = d.player_id;    		
-			if (!mlbData.batters["y2014"].pHash[d.MLBAM_ID]) {
+	    d.MLBAM_ID = d.player_id;    	
+	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 
+	    if (!mlbData.batters["y2014"].pHash[d.MLBAM_ID]) {
 				return;
-	      }
-    d.mHR = +d.hr;
-    d.mAVG = +d.avg;
+	    }
+	    d.mHR = +d.hr;
+	    d.mAVG = +d.avg;
+	
+	    d.mAB = +d.ab;
+	    d.mR = +d.r;
+	    d.mRBI = +d.rbi;
+	    d.mOPS = +d.ops;
+	    d.mSB = +d.sb;
+	    d.nameFirst = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameFirst;
+	    d.nameLast = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameLast; 
+	    d.teamID = d.team_abbrev;
+	    d.pos = d.pos == "CF" ? "OF" : (d.pos == "RF" ? "OF" : (d.pos == "LF" ? "OF" : d.pos));
+	
+	    mlbData.batters["y" + year].pHash[d.MLBAM_ID] = d;
+	    mlbData.batters["y" + year].push(d);  
+	});	
+}
 
-    d.mAB = +d.ab;
-    d.mR = +d.r;
-    d.mRBI = +d.rbi;
-    d.mOPS = +d.ops;
-    d.mSB = +d.sb;
-    d.nameFirst = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameFirst;
-    d.nameLast = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameLast; 
-    d.teamID = d.team_abbrev;
-    d.pos = d.pos == "CF" ? "OF" : (d.pos == "RF" ? "OF" : (d.pos == "LF" ? "OF" : d.pos));
-    mlbData.batters["y" + year].pHash[d.MLBAM_ID] = d;
-    mlbData.batters["y" + year].push(d);  
-   });	
+function getExclusionListID(mlbamID) {
+   return "id_" + mlbamID;
 }
 
 function cleanseMLBPitcherData(year,data) {
 	mlbData.pitchers["y" + year].pHash = {};
 	data.forEach(function(d) {
-	    d.MLBAM_ID = d.player_id;    		
-			if (!mlbData.pitchers["y2014"].pHash[d.MLBAM_ID]) {
+	    d.MLBAM_ID = d.player_id;    
+	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 	    
+	    if (!mlbData.pitchers["y2014"].pHash[d.MLBAM_ID]) {
 				return;
-	      }
-    d.mSOA = +d.so;
-    d.mW = +d.w;
-
-    d.mDERA = +d.era;
-    d.mSV = +d.sv;
-    d.mWHIP = +d.whip;
-    d.mIP = +d.p_ip;
-    d.nameFirst = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameFirst;
-    d.nameLast = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameLast; 
-    d.teamID = d.team_abbrev;
-    d.pos = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].pos;
-    mlbData.pitchers["y" + year].pHash[d.MLBAM_ID] = d;
-    mlbData.pitchers["y" + year].push(d);  
-   });	
+	    }
+	    d.mSOA = +d.so;
+	    d.mW = +d.w;
+	
+	    d.mDERA = +d.era;
+	    d.mSV = +d.sv;
+	    d.mWHIP = +d.whip;
+	    d.mIP = +d.p_ip;
+	    d.nameFirst = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameFirst;
+	    d.nameLast = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameLast; 
+	    d.teamID = d.team_abbrev;
+	    d.pos = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].pos;
+	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)];    
+	    mlbData.pitchers["y" + year].pHash[d.MLBAM_ID] = d;
+	    mlbData.pitchers["y" + year].push(d);  
+	});	
 }
 
 function showPlayerData(d) {
@@ -394,7 +423,7 @@ function showPlayerData(d) {
         }); 
        
        
-        
+        content = document.getElementById('googNews');
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -405,6 +434,17 @@ function showPlayerData(d) {
 	  }
 	  d3.selectAll(".gns-root").remove();
 	  newsShow = new google.elements.NewsShow(content, newsOptions);
+	  
+	 content = document.getElementById('googNewsI');	  
+	  newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :  d.nameLast + " Injury?" ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
+	      }
+	    ]
+	  }
+	  newsShowI = new google.elements.NewsShow(content, newsOptions);	  
 }
 
 function showPitcherData(d) {
@@ -433,7 +473,7 @@ function showPitcherData(d) {
 
          //   expandLevel(2);
         }); 
-       
+       content = document.getElementById('googNews');
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -443,7 +483,18 @@ function showPitcherData(d) {
 	    ]
 	  }
 	  d3.selectAll(".gns-root").remove();
-	  newsShow = new google.elements.NewsShow(content, newsOptions);       
+	  newsShow = new google.elements.NewsShow(content, newsOptions);  
+	  
+	 content = document.getElementById('googNewsI');	  
+	  newsOptions = {
+	    "queryList" : [
+	      {
+		"title" :  d.nameLast + " Injury?" ,
+		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
+	      }
+	    ]
+	  }
+	  newsShowI = new google.elements.NewsShow(content, newsOptions);	  
 }
 
 function getMLBBatterData(year, dat) { 
@@ -473,6 +524,59 @@ function getMLBPitcherData(year, dat) {
 function hidePlayerData() {
 	            d3.select("#hoverDiv")
                 .style("display", "none");
+}
+
+function isPlayerExcluded(d) {
+   return d.excluded && d.excluded == "t";
+}
+
+function excludePlayer(mlbamID) {
+  if(mlbamID) {
+  	exclusionList.theList[getExclusionListID(mlbamID)] = "t";
+ 
+  	if(mlbData.batters["y2014"].pHash[mlbamID] ) {
+  		mlbData.batters["y2014"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.batters["y2013"].pHash[mlbamID] ) {
+  		mlbData.batters["y2013"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.batters["y2012"].pHash[mlbamID] ) {
+  		mlbData.batters["y2012"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.batters["y2011"].pHash[mlbamID] ) {
+  		mlbData.batters["y2011"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.batters["ySpring"].pHash[mlbamID] ) {
+  		mlbData.batters["ySpring"].pHash[mlbamID].excluded = "t";
+  	}  	
+
+  	if(mlbData.pitchers["y2014"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2014"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.pitchers["y2013"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2013"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.pitchers["y2012"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2012"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.pitchers["y2011"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2011"].pHash[mlbamID].excluded = "t";
+  	}
+  	if(mlbData.pitchers["ySpring"].pHash[mlbamID] ) {
+  		mlbData.pitchers["ySpring"].pHash[mlbamID].excluded = "t";
+  	}  	  	
+  	
+  	
+  	
+  	$.ajax({
+	  type: 'put',
+	  url: '/bb/exclusionList/',
+	  dataType: 'json',
+	  data: exclusionList,
+	  success: function() {   }
+	});
+  }
+  return false;
 }
 
 function rowMouseOver(clink,level,element) {
@@ -625,11 +729,12 @@ function createBatterReport(data) {
                        "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
                                                                                      ]},   
                        "level_2" : {  "child" : ["MLBAM_ID"], "headerFormat" : [{ "fields" : ["nameFirst","nameLast"], "format":"{0} {1}", "style" : " font-weight: bold; "},
+                       								{ "fields" : ["MLBAM_ID"], "format":"<a href='#' onclick='excludePlayer({0});' >Exclude</a>", "style" : " font-weight: bold; "},
                        		  																	  { "fields" : ["pos"], "format":"{0}", "style" : " font-weight: bold; "},                       		  
                        		  																	  { "fields" : ["teamID"], "format":"{0}", "style" : " font-weight: bold; "},
                                                                                      ]}
                   };
-  var topColumnHeaders = ["Player","Pos","Team"];
+  var topColumnHeaders = ["Player","Exclude","Pos","Team"];
 
   metricList  =[];
 
@@ -736,11 +841,12 @@ function createPitcherReport(data) {
                        "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
                                                                                      ]},   
                        "level_2" : {  "child" : ["MLBAM_ID"], "headerFormat" : [{ "fields" : ["nameFirst","nameLast"], "format":"{0} {1}", "style" : " font-weight: bold; "},
+                       								{ "fields" : ["MLBAM_ID"], "format":"<a href='#' onclick='excludePlayer({0});' >Exclude</a>", "style" : " font-weight: bold; "},
                        		  																	  { "fields" : ["pos"], "format":"{0}", "style" : " font-weight: bold; "},                       		  
                        		  																	  { "fields" : ["teamID"], "format":"{0}", "style" : " font-weight: bold; "},
                                                                                      ]}
                   };
-  var topColumnHeaders = ["Player","Pos","Team"];
+  var topColumnHeaders = ["Player","Exclude","Pos","Team"];
 
   metricList  =[];
 

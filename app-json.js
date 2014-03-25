@@ -2,6 +2,17 @@ var express  = require('express');
 var app = express();
 var server = require('http').createServer(app );
  
+var config = require('./config.json');
+
+var Db = require('mongodb').MongoClient;
+var ObjectID = require('mongodb').ObjectID;
+
+var dbURL = "mongodb://" + config.appSettings.mongolab.DB_USERNAME + ":" + config.appSettings.mongolab.DB_PASS + "@ds030827.mongolab.com:30827/MongoLab-cf";
+
+app.configure(function(){
+  app.use(express.bodyParser());
+});
+
 server.listen(3000);
 var fs = require('fs');
 
@@ -9,9 +20,7 @@ app.get('/', function (req, res) {
   res.sendfile(__dirname + '/baseball.html');
 });
 
-app.get('/ndireport.js', function (req, res) {
-  res.sendfile(__dirname + '/ndireport.js');
-});
+
 
 app.use(express.static(__dirname + '/public'));
 
@@ -37,8 +46,45 @@ app.get('/bb/:position/:year', function (req, res) {
 
 });
 
+ Db.connect(dbURL, function(err, db) {
+	app.get('/bb/exclusionList', function (req, res) {
+ 
+	        var mlbExclusionList = db.collection("mlbExclusionList");
+
+		mlbExclusionList.findOne({}, function (err, item) {
+		    res.json(item);	
+	   
+	   });		
+	});
+	
+	app.put('/bb/exclusionList', function (req, res) {
+  	 
+	        var mlbExclusionList = db.collection("mlbExclusionList");
+	        var objID = new ObjectID(req.body._id);
+	        var exclList = req.body;
+	        exclList._id = objID;
+	        console.log("start");
+		//mlbExclusionList.findOne({}, function (err, item) {
+		mlbExclusionList.update({"_id": objID},exclList,{upsert:true}
+						,insertCallback);	
+		console.log("end"+exclList);
+		res.json(["hi"]);	
+	   
+	 	
+	});	
+});
+
+function insertCallback(err, docs) {
+	console.log("DOCS: " + docs);
+		if(err) {
+			console.log("error: " + err);	
+			throw err;
+		}
+
+}
+
 function get2014Projections(position,res) {
-	var filePath = __dirname +"/json/" + position +  "Forecast2013.json";
+	var filePath = __dirname +"/json/" + position +  "Forecast2014.json";
 
 	fs.readFile(filePath, 'utf8', function (err, data) {
 	  if (err) {
