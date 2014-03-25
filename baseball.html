@@ -30,7 +30,7 @@ border: 1px solid black;
 <script src="js/jquery-ui.js" type="text/javascript" ></script>
 <script src="js/node.js" type="text/javascript" ></script>
 <script src="js/ColorGradient.js" type="text/javascript" ></script>
-<script src="js/hierarchyToggler.js" type="text/javascript" ></script
+<script src="js/hierarchyToggler.js" type="text/javascript" ></script>
 <link href="css/colors.css" type="text/css" rel="stylesheet" /> 
 <link href="css/rzdreport.css" type="text/css" rel="stylesheet" /> 
 <link href="css/brand.css" type="text/css" rel="stylesheet" /> 
@@ -68,7 +68,6 @@ border: 1px solid black;
             </table>
         </td>
 	<td><div id='googNews' ></div></td>        
-	<td><div id='googNewsI' ></div></td>    
     </tr>
 </table></li>
     </ul>
@@ -114,17 +113,6 @@ function onLoad() {
   }
   content = document.getElementById('googNews');
   newsShow = new google.elements.NewsShow(content, options);
-
-  options = {
-    "queryList" : [
-      {
-        "title" : "Closers",
-        "q" : "Baseball Closers"
-      }
-    ]
-  }
-  content = document.getElementById('googNewsI');
-  newsShowI = new google.elements.NewsShow(content, options);  
 }
 
 google.setOnLoadCallback(onLoad);
@@ -164,20 +152,24 @@ var svg = d3.select("#viz").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": []} };
+    var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[],"y2014":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": [],"y2014":[]} };
  
     
 
     
-d3.json("/bb/batters/2013", function(error, data) {	
-		mlbData.batters["y2013"].pHash = {};
+d3.json("/bb/batters/2014", function(error, data) {	
+		mlbData.batters["y2014"].pHash = {};
   data.forEach(function(d) {
     d.mHR = +d.mHR;
     d.mAVG = +d.mAVG;
-    mlbData.batters["y2013"].pHash[d.MLBAM_ID] = d;
-    mlbData.batters["y2013"].push(d);
+    mlbData.batters["y2014"].pHash[d.MLBAM_ID] = d;
+    mlbData.batters["y2014"].push(d);
   });
   
+	d3.json("/bb/batters/2013", function(error, data) {
+			cleanseMLBBatterData(2013,data);
+	});
+	
 	d3.json("/bb/batters/2012", function(error, data) {
 			cleanseMLBBatterData(2012,data);
 	});
@@ -194,8 +186,8 @@ d3.json("/bb/batters/2013", function(error, data) {
 
 });
 
-d3.json("/bb/pitchers/2013", function(error, data) {	
-		mlbData.pitchers["y2013"].pHash = {};
+d3.json("/bb/pitchers/2014", function(error, data) {	
+		mlbData.pitchers["y2014"].pHash = {};
   data.forEach(function(d) {
     d.mDERA = +d.mDERA;
     d.mSOA = +d.mSOA;
@@ -204,10 +196,14 @@ d3.json("/bb/pitchers/2013", function(error, data) {
     if(!d.pos || d.pos =="") {
     	return; 
     }
-    mlbData.pitchers["y2013"].pHash[d.MLBAM_ID] = d;
-    mlbData.pitchers["y2013"].push(d);
+    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
+    mlbData.pitchers["y2014"].push(d);
   });
   
+	d3.json("/bb/pitchers/2013", function(error, data) {
+			cleanseMLBPitcherData(2013,data);
+	});
+	  
 	d3.json("/bb/pitchers/2012", function(error, data) {
 			cleanseMLBPitcherData(2012,data);
 	});
@@ -327,7 +323,7 @@ function cleanseMLBBatterData(year,data) {
 	mlbData.batters["y" + year].pHash = {};
 	data.forEach(function(d) {
 	    d.MLBAM_ID = d.player_id;    		
-			if (!mlbData.batters["y2013"].pHash[d.MLBAM_ID]) {
+			if (!mlbData.batters["y2014"].pHash[d.MLBAM_ID]) {
 				return;
 	      }
     d.mHR = +d.hr;
@@ -338,8 +334,8 @@ function cleanseMLBBatterData(year,data) {
     d.mRBI = +d.rbi;
     d.mOPS = +d.ops;
     d.mSB = +d.sb;
-    d.nameFirst = mlbData.batters["y2013"].pHash[d.MLBAM_ID].nameFirst;
-    d.nameLast = mlbData.batters["y2013"].pHash[d.MLBAM_ID].nameLast; 
+    d.nameFirst = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameFirst;
+    d.nameLast = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameLast; 
     d.teamID = d.team_abbrev;
     d.pos = d.pos == "CF" ? "OF" : (d.pos == "RF" ? "OF" : (d.pos == "LF" ? "OF" : d.pos));
     mlbData.batters["y" + year].pHash[d.MLBAM_ID] = d;
@@ -351,7 +347,7 @@ function cleanseMLBPitcherData(year,data) {
 	mlbData.pitchers["y" + year].pHash = {};
 	data.forEach(function(d) {
 	    d.MLBAM_ID = d.player_id;    		
-			if (!mlbData.pitchers["y2013"].pHash[d.MLBAM_ID]) {
+			if (!mlbData.pitchers["y2014"].pHash[d.MLBAM_ID]) {
 				return;
 	      }
     d.mSOA = +d.so;
@@ -361,33 +357,34 @@ function cleanseMLBPitcherData(year,data) {
     d.mSV = +d.sv;
     d.mWHIP = +d.whip;
     d.mIP = +d.p_ip;
-    d.nameFirst = mlbData.pitchers["y2013"].pHash[d.MLBAM_ID].nameFirst;
-    d.nameLast = mlbData.pitchers["y2013"].pHash[d.MLBAM_ID].nameLast; 
+    d.nameFirst = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameFirst;
+    d.nameLast = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameLast; 
     d.teamID = d.team_abbrev;
-    d.pos = mlbData.pitchers["y2013"].pHash[d.MLBAM_ID].pos;
+    d.pos = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].pos;
     mlbData.pitchers["y" + year].pHash[d.MLBAM_ID] = d;
     mlbData.pitchers["y" + year].push(d);  
    });	
 }
 
 function showPlayerData(d) {
-	     d =     mlbData.batters["y2013"].pHash[d.MLBAM_ID];
+	     d =     mlbData.batters["y2014"].pHash[d.MLBAM_ID];
         var closeStr = "<td align=\"right\" ><a id=\"hoverClose\">Close</a><br /></td>";
         var img = "<img src='http://mlb.mlb.com/images/players/mugshot/ph_" + d.MLBAM_ID +".jpg'></img>"
-        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2013 Guru Projections</th></tr><tr><th>AB</th><th>HR</th><th>R</th><th>RBI</th><th>SB</th><th>AVG</th><th>OPS</th></tr>";
+        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>AB</th><th>HR</th><th>R</th><th>RBI</th><th>SB</th><th>AVG</th><th>OPS</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mAB + "</td><td>" + d.mHR + "</td><td>" + d.mR + "</td><td>" + d.mRBI + "</td><td>" + d.mSB + "</td><td>" + d.mAVG + "</td><td>" + d.mOPS + "</td></tr></td></table>";
 
         var team =  mlbData.batters["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.batters["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
+        statsTable += getMLBBatterData("2013", d);
         statsTable += getMLBBatterData("2012", d);
         statsTable += getMLBBatterData("2011", d);
         statsTable += getMLBBatterData("Spring", d);
         d3.select("#hoverDiv")
               .attr("class","h2text")
-               .style("position","absolute")
-               .style("left",mouseX)
-               .style("top",mouseY)
+            //  .style("position","absolute")
+            //  .style("left","800px")
+           //   .style("top","400px")
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
+              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
 
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
@@ -397,7 +394,7 @@ function showPlayerData(d) {
         }); 
        
        
-	 content = document.getElementById('googNews');
+        
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -408,27 +405,17 @@ function showPlayerData(d) {
 	  }
 	  d3.selectAll(".gns-root").remove();
 	  newsShow = new google.elements.NewsShow(content, newsOptions);
-
-	 content = document.getElementById('googNewsI');	  
-	  newsOptions = {
-	    "queryList" : [
-	      {
-		"title" :  d.nameLast + " Injury?" ,
-		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
-	      }
-	    ]
-	  }
-	  newsShowI = new google.elements.NewsShow(content, newsOptions);
 }
 
 function showPitcherData(d) {
-	     d =     mlbData.pitchers["y2013"].pHash[d.MLBAM_ID];
+	     d =     mlbData.pitchers["y2014"].pHash[d.MLBAM_ID];
         var closeStr = "<td align=\"right\" ><a id=\"hoverClose\">Close</a><br /></td>";
         var img = "<img src='http://mlb.mlb.com/images/players/mugshot/ph_" + d.MLBAM_ID +".jpg'></img>"
-        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2013 Guru Projections</th></tr><tr><th>IP</th><th>W</th><th>SV</th><th>K</th><th>ERA</th><th>WHIP</th></tr>";
+        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>IP</th><th>W</th><th>SV</th><th>K</th><th>ERA</th><th>WHIP</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mIP + "</td><td>" + d.mW + "</td><td>" + d.mSV + "</td><td>" + d.mSOA + "</td><td>" + d.mDERA + "</td><td>" + d.mWHIP + "</td></tr></td></table>";
 
         var team =  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
+        statsTable += getMLBPitcherData("2013", d);
         statsTable += getMLBPitcherData("2012", d);
         statsTable += getMLBPitcherData("2011", d);
         statsTable += getMLBPitcherData("Spring", d);
@@ -438,7 +425,7 @@ function showPitcherData(d) {
             //  .style("left","800px")
            //   .style("top","400px")
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
+              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
 
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
@@ -447,7 +434,6 @@ function showPitcherData(d) {
          //   expandLevel(2);
         }); 
        
-       	  content = document.getElementById('googNews');
 	  var newsOptions = {
 	    "queryList" : [
 	      {
@@ -457,17 +443,7 @@ function showPitcherData(d) {
 	    ]
 	  }
 	  d3.selectAll(".gns-root").remove();
-	  content = document.getElementById('googNewsI');	  
 	  newsShow = new google.elements.NewsShow(content, newsOptions);       
-	  newsOptions = {
-	    "queryList" : [
-	      {
-		"title" :   d.nameLast + " Injury?" ,
-		"q" :  d.nameFirst  + " " + d.nameLast + " baseball injury"
-	      }
-	    ]
-	  }
-	  newsShowI = new google.elements.NewsShow(content, newsOptions);	  
 }
 
 function getMLBBatterData(year, dat) { 
@@ -566,12 +542,10 @@ function rowMouseOver(clink,level,element) {
          fillColor = "black";    
        }
             
-      //  svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
-      //                  .style("stroke-width", "1px") 
-      //                  .attr("r",  rFunction)                             
-      //                  .style("fill", fillColor);    
-      
-                          
+        svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
+                        .style("stroke-width", "1px") 
+                        .attr("r",  rFunction)                             
+                        .style("fill", fillColor);    
     }    
     if(level==1) {
        var fillColor = "black";
@@ -612,15 +586,10 @@ function rowMouseOver(clink,level,element) {
        //  counties.selectAll("path").style("stroke-width", "0.0px");
             
         // fillColor = "brown";       
-     //   svg.selectAll("[pos='"+clink.replace("-","")+"']")
-     //                   .style("stroke-width", "0.3px") 
-      //                  .attr("r",  rFunction)                     
-      //                  .style("fill", "red");    
-                        
-        svg.selectAll("[pos]")              
-                        .style("display", "none");        
-        svg.selectAll("[pos='"+clink.replace("-","")+"']")             
-                        .style("display", "");                           
+        svg.selectAll("[pos='"+clink.replace("-","")+"']")
+                        .style("stroke-width", "0.3px") 
+                        .attr("r",  rFunction)                     
+                        .style("fill", "red");    
     }       
 }
 
@@ -716,10 +685,11 @@ function createBatterReport(data) {
          .attr("label",function(d){return d.header});            
   measurementPulldown.on("change", updateColors);        
       
-  var yearList = [{"fieldName": "2013","header":"2013 Projections"},
+  var yearList = [{"fieldName": "2014","header":"2014 Projections"},
+  	  					{"fieldName": "2013","header":"2013 Actuals"},   
   	  					{"fieldName": "2012","header":"2012 Actuals"}, 
   	  					{"fieldName": "2011","header":"2011 Actuals"},
-						{"fieldName": "Spring","header":"Spring Training 2013"}  	];  	  	  					
+						{"fieldName": "Spring","header":"Spring Training 2014"}  	];  	  	  					
   yearPulldown.selectAll("option")
       .data(yearList).enter()
        .append("option") 
@@ -863,8 +833,6 @@ function updateColors() {
    d3.select("h2 span").text( measurementPulldown[0][0].options[measurementPulldown[0][0].selectedIndex].text) ;
  //  YTD Pct Growth -- Dealer Purchases (yellow ~100%, green >100%, red <100%)
    
-        svg.selectAll("[pos]")             
-                        .style("display", "");     
 }
 
 function fillCircles(d) {

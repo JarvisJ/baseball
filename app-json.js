@@ -24,8 +24,8 @@ app.get('/baseball.html', function (req, res) {
 
 app.get('/bb/:position/:year', function (req, res) {
 		switch(req.params.year) {
-		case "2013":
-			get2013Projections(req.params.position,res);
+		case "2014":
+			get2014Projections(req.params.position,res);
 			break;
 		case "Spring":
 			getSpringStats(req.params.position,res);
@@ -37,7 +37,7 @@ app.get('/bb/:position/:year', function (req, res) {
 
 });
 
-function get2013Projections(position,res) {
+function get2014Projections(position,res) {
 	var filePath = __dirname +"/json/" + position +  "Forecast2013.json";
 
 	fs.readFile(filePath, 'utf8', function (err, data) {
@@ -71,7 +71,7 @@ function getActualStats(position,year,res) {
 
 function getSpringStats(position,res) {
 	position = position == "batters" ? "Batters" : "Pitchers";		
-	var filePath = __dirname + "/json/spring"  + position +  "2013.json";
+	var filePath = __dirname + "/json/spring"  + position +  "2014.json";
 	var buf = '';	
 	
 	fs.readFile(filePath, 'utf8', function (err, data) {
