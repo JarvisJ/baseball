@@ -46,6 +46,23 @@ app.get('/bb/:position/:year', function (req, res) {
 
 });
 
+app.get('/bb/closers', function (req, res) {
+	var filePath = __dirname +"/json/closers2014.json";
+
+	fs.readFile(filePath, 'utf8', function (err, data) {
+	  if (err) {
+	    console.log('Error: ' + err);
+	    res.end();
+	    return;
+	  }
+	 
+	  var jsonObj = JSON.parse(data); 
+	  res.json(jsonObj);
+	  res.end();
+	});
+
+});
+
  Db.connect(dbURL, function(err, db) {
 	app.get('/bb/exclusionList', function (req, res) {
  
@@ -72,6 +89,7 @@ app.get('/bb/:position/:year', function (req, res) {
 	   
 	 	
 	});	
+		
 });
 
 function insertCallback(err, docs) {

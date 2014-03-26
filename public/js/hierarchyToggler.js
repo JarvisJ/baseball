@@ -1,9 +1,7 @@
 ﻿
-/* In order to use the toggleRow function, the table containing the terminated dealers must contain the "enableTermToggling" class.
-   ...and the rows to be terminated must contain the "terminated" class.
- */
-function toggleRow(caller) {
-    var tables = document.getElementsByTagName("table");
+/* toggles a row in the JJReport */
+function toggleRow(caller,tableID) {
+    var tables = [document.getElementById(tableID)];
     var oCaller = caller;
     
     // get the callers row id class name (typically rid_XX_XX...)
@@ -105,8 +103,9 @@ function toggleRow(caller) {
 //    }
  }
  
-function expandLevel(levelNum) {
-    var tables = document.getElementsByTagName("table");
+function expandLevel(levelNum,tableID) {
+    // note: using array here is a hack so that I don't need to modify a bunch of code.
+    var tables = [document.getElementById(tableID)];
    
     
     for( var i=0; i < tables.length; i++ ) {

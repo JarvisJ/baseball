@@ -167,7 +167,7 @@ var svg = d3.select("#viz").append("svg")
     var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[],"y2014":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": [],"y2014":[]} };
  
 var exclusionList;
-
+var closerList;
 
 d3.json("/bb/exclusionList", function(error,eData) {    
 	exclusionList = eData;
@@ -202,39 +202,43 @@ d3.json("/bb/exclusionList", function(error,eData) {
 
 	
 	});
-	
-	d3.json("/bb/pitchers/2014", function(error, data) {	
-			mlbData.pitchers["y2014"].pHash = {};
-	  data.forEach(function(d) {
-	    d.mDERA = +d.mDERA;
-	    d.mSOA = +d.mSOA;
-	    d.pos = d.POS;
-	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)];
-	    if(!d.pos || d.pos =="") {
-		return; 
-	    }
-	    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
-	    mlbData.pitchers["y2014"].push(d);
-	  });
-	  
-		d3.json("/bb/pitchers/2013", function(error, data) {
-				cleanseMLBPitcherData(2013,data);
-		});
+	d3.json("/bb/closers", function(error,closerData) { 
+		closerList = closerData;
+		d3.json("/bb/pitchers/2014", function(error, data) {	
+			  mlbData.pitchers["y2014"].pHash = {};
+			  data.forEach(function(d) {
+			    d.mDERA = +d.mDERA;
+			    d.mSOA = +d.mSOA;
+			    d.pos = d.POS;
+			    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)];
+			    if(!d.pos || d.pos =="") {
+				return; 
+			    }
+			    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
+			    mlbData.pitchers["y2014"].push(d);
+			  });
+			createClosersReport( data.filter(function(d){ return isPlayerCloser(d); }));
+    
 		  
-		d3.json("/bb/pitchers/2012", function(error, data) {
-				cleanseMLBPitcherData(2012,data);
+			d3.json("/bb/pitchers/2013", function(error, data) {
+					cleanseMLBPitcherData(2013,data);
+			});
+			  
+			d3.json("/bb/pitchers/2012", function(error, data) {
+					cleanseMLBPitcherData(2012,data);
+			});
+			
+			d3.json("/bb/pitchers/2011", function(error, data) {
+					cleanseMLBPitcherData(2011,data);
+			});
+			
+			d3.json("/bb/pitchers/Spring", function(error, data) {
+					cleanseMLBPitcherData("Spring",data);
+			});	
+			
+		  // updatePitcherViz(data);
+		
 		});
-		
-		d3.json("/bb/pitchers/2011", function(error, data) {
-				cleanseMLBPitcherData(2011,data);
-		});
-		
-		d3.json("/bb/pitchers/Spring", function(error, data) {
-				cleanseMLBPitcherData("Spring",data);
-		});	
-		
-	  // updatePitcherViz(data);
-	
 	});
 });
 
@@ -245,6 +249,8 @@ function updateBatterViz(unfilteredData) {
 
 	
   createBatterReport(data);  
+  createExcludedReport( unfilteredData.filter(function(d){ return isPlayerExcluded(d,true); }));
+  
   x.domain(d3.extent(data, function(d) { return d.mAVG; })).nice();
   y.domain(d3.extent(data, function(d) { return d.mHR; })).nice();
 
@@ -296,6 +302,7 @@ function updatePitcherViz(unfilteredData) {
 
 	
   createPitcherReport(data);  
+  createExcludedReport( unfilteredData.filter(function(d){ return isPlayerExcluded(d,true); }));
   x.domain(d3.extent(data, function(d) { return d.mDERA; })).nice();
   y.domain(d3.extent(data, function(d) { return d.mSOA; })).nice();
 
@@ -534,7 +541,18 @@ function hidePlayerData() {
                 .style("display", "none");
 }
 
-function isPlayerExcluded(d) {
+function isPlayerCloser(d) {
+ 
+	return (closerList && closerList["id_" + d.MLBAM_ID] == "t")   ;
+ 
+ 
+}
+
+function isPlayerExcluded(d,onlyUseFlag) {
+   if(onlyUseFlag) {
+   	return (d.excluded && d.excluded == "t")   
+   }
+
    return (d.excluded && d.excluded == "t")
    		|| (d.lg && d.lg == "NL") 
    		|| (d.LG && d.LG == "NL")  
@@ -591,7 +609,56 @@ function excludePlayer(mlbamID) {
   return false;
 }
 
-function rowMouseOver(clink,level,element) {
+function includePlayer(mlbamID) {
+  if(mlbamID) {
+  	exclusionList.theList[getExclusionListID(mlbamID)] = undefined;
+ 
+  	if(mlbData.batters["y2014"].pHash[mlbamID] ) {
+  		mlbData.batters["y2014"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.batters["y2013"].pHash[mlbamID] ) {
+  		mlbData.batters["y2013"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.batters["y2012"].pHash[mlbamID] ) {
+  		mlbData.batters["y2012"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.batters["y2011"].pHash[mlbamID] ) {
+  		mlbData.batters["y2011"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.batters["ySpring"].pHash[mlbamID] ) {
+  		mlbData.batters["ySpring"].pHash[mlbamID].excluded = undefined;
+  	}  	
+
+  	if(mlbData.pitchers["y2014"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2014"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.pitchers["y2013"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2013"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.pitchers["y2012"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2012"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.pitchers["y2011"].pHash[mlbamID] ) {
+  		mlbData.pitchers["y2011"].pHash[mlbamID].excluded = undefined;
+  	}
+  	if(mlbData.pitchers["ySpring"].pHash[mlbamID] ) {
+  		mlbData.pitchers["ySpring"].pHash[mlbamID].excluded = undefined;
+  	}  	  	
+  	
+  	
+  	
+  	$.ajax({
+	  type: 'put',
+	  url: '/bb/exclusionList/',
+	  dataType: 'json',
+	  data: exclusionList,
+	  success: function() {   }
+	});
+  }
+  return false;
+}
+
+function rowMouseOver(clink,level,element,tableID) {
     
        var myMetric =metricList[0];
         for( i = 0; i< metricList.length; i++ ) {
@@ -681,14 +748,14 @@ function rowMouseOver(clink,level,element) {
      //                   .style("stroke-width", "0.3px") 
       //                  .attr("r",  rFunction)                     
        //                 .style("fill", "red");
-         svg.selectAll("[pos]")              
+         svg.selectAll("#" + tableID + "[pos]")              
                          .style("display", "none");        
-         svg.selectAll("[pos='"+clink.replace("-","")+"']")             
+         svg.selectAll("#" + tableID + "[pos='"+clink.replace("-","")+"']")             
                          .style("display", "");            
     }       
 }
                                                                                  
-function rowMouseOut(clink,level,element) {
+function rowMouseOut(clink,level,element,tableID) {
 
     if(level==2) {
         svg.selectAll("[mlbid='id"+clink+"']")
@@ -703,7 +770,7 @@ function rowMouseOut(clink,level,element) {
        else {
             rFunction= function(d) { return Math.sqrt(d.mSB)*1.5; }
        }     	    
-        svg.selectAll("[pos='"+clink.replace("-","")+"']")
+        svg.selectAll("#" + tableID + "[pos='"+clink.replace("-","")+"']")
                         .style("stroke-width", "0.3px")                    
                         .style("fill",  fillCircles);      
     }         
@@ -714,7 +781,7 @@ function createBatterReport(data) {
       
   hierarchData = {"level_1" : [ {"pos":"SS"},{"pos":"OF"},{"pos":"1B"},{"pos":"2B"},{"pos":"3B"},{"pos":"C"},{"pos":"DH"}],
 							  "level_2" : data };
-  var $dataTable = $("<table id=\"dt\" border=1 />");  
+ // var $dataTable = $("<table id=\"dt\" border=1 />");  
   var levelDefs = {    
                        "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
                                                                                      ]},   
@@ -811,13 +878,13 @@ function createBatterReport(data) {
   
   
 
-  myReport = new JJReport(hierarchData,levelDefs,"batreport",metricList,"myReport");
+  myReport = new JJReport(hierarchData,levelDefs,"batreport",metricList,"myReport", "Batters");
   myReport.rowMouseOver = "rowMouseOver";
   myReport.rowMouseOut = "rowMouseOut";
 
   
   d3.select("#theTable").remove();
-  $("#mainReportDiv").append(myReport.render(topColumnHeaders,2));
+  $("#mainReportDiv").append(myReport.render(topColumnHeaders,2,"theTable"));
   updateColorLegend();  
  //  updateZips();        
 }
@@ -826,7 +893,7 @@ function createPitcherReport(data) {
       
 	hierarchData = {"level_1" : [ {"pos":"SP"},{"pos":"LP"},{"pos":"JP"},{"pos":"EP"},{"pos":"DP"},{"pos":"BP"},{"pos":"AP"}],
 							  "level_2" : data };
-  var $dataTable = $("<table id=\"dt\" border=1 />");  
+ // var $dataTable = $("<table id=\"dt\" border=1 />");  
   var levelDefs = {    
                        "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
                                                                                      ]},   
@@ -889,16 +956,149 @@ function createPitcherReport(data) {
   
   
 
-  myReport = new JJReport(hierarchData,levelDefs,"batreport",metricList,"myReport");
-  myReport.rowMouseOver = "rowMouseOver";
-  myReport.rowMouseOut = "rowMouseOut";
-
+  pitchReport = new JJReport(hierarchData,levelDefs,"pitchreport",metricList,"pitchReport", "Pitchers");
+  pitchReport.rowMouseOver = "rowMouseOver";
+  pitchReport.rowMouseOut = "rowMouseOut";
+                                                                       
   
   d3.select("#theTable").remove();
-  $("#mainReportDiv").append(myReport.render(topColumnHeaders,2));
+  $("#mainReportDiv").append(pitchReport.render(topColumnHeaders,2,"theTable"));
   updateColorLegend();  
  //  updateZips();        
 }
+
+function createClosersReport(data) {
+      
+	hierarchData = {"level_1" : [ {"pos":"SP"},{"pos":"LP"},{"pos":"JP"},{"pos":"EP"},{"pos":"DP"},{"pos":"BP"},{"pos":"AP"}],
+							  "level_2" : data };
+ // var $dataTable = $("<table id=\"dt\" border=1 />");  
+  var levelDefs = {    
+                       "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
+                                                                                     ]},   
+                       "level_2" : {  "child" : ["MLBAM_ID"], "headerFormat" : [{ "fields" : ["nameFirst","nameLast"], "format":"{0} {1}", "style" : " font-weight: bold; "},
+                       								{ "fields" : ["MLBAM_ID"], "format":"<a href='#' onclick='excludePlayer({0});' >Exclude</a>", "style" : " font-weight: bold; "},
+                       		  																	  { "fields" : ["pos"], "format":"{0}", "style" : " font-weight: bold; "},                       		  
+                       		  																	  { "fields" : ["teamID"], "format":"{0}", "style" : " font-weight: bold; "},
+                                                                                     ]}
+                  };
+  var topColumnHeaders = ["Player","Exclude","Pos","Team"];
+
+  metricList  =[];
+
+  metric = new ReportMetric("age","Age", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.lowValGreen = true;
+  metric.colorCode = true;
+  metricList.push(metric);   
+  
+  metric = new ReportMetric("mW","Wins", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+ // metric.lowValGreen = true;
+  metric.colorCode = true;
+  metricList.push(metric); 
+  
+  metric = new ReportMetric("mSV","Saves", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metricList.push(metric);  
+  
+  metric = new ReportMetric("mSOA","K", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metricList.push(metric);      
+  
+  metric = new ReportMetric("mDERA","ERA", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metric.lowValGreen = true;  
+  metricList.push(metric);
+  
+  metric = new ReportMetric("mWHIP","WHIP", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;
+  metric.lowValGreen = true;  
+  metricList.push(metric);     
+     
+      
+  
+  //$("#mainSVG").after("<h5>hi</h5>");
+  
+  
+
+  closerReport = new JJReport(hierarchData,levelDefs,"closerreport",metricList,"closerReport", "Closers");
+  closerReport.rowMouseOver = "rowMouseOver";
+  closerReport.rowMouseOut = "rowMouseOut";
+
+  
+  d3.select("#closerTable").remove();
+  $("#mainReportDiv").append(closerReport.render(topColumnHeaders,2,"closerTable"));
+  expandLevel(1,'closerTable');
+      
+}
+
+function createExcludedReport(data) {
+      
+	hierarchData = {"level_1" : [{"pos":"SS"},{"pos":"OF"},{"pos":"1B"},{"pos":"2B"},{"pos":"3B"},{"pos":"C"},{"pos":"DH"}, {"pos":"SP"},{"pos":"LP"},{"pos":"JP"},{"pos":"EP"},{"pos":"DP"},{"pos":"BP"},{"pos":"AP"}],
+							  "level_2" : data };
+ // var $dataTable = $("<table id=\"dt\" border=1 />");  
+  var levelDefs = {    
+                       "level_1" : {  "child" : ["pos"], "headerFormat" : [{ "fields" : ["pos"], "format":"Total For {0}", "style" : " font-weight: bold; "}
+                                                                                     ]},   
+                       "level_2" : {  "child" : ["MLBAM_ID"], "headerFormat" : [{ "fields" : ["nameFirst","nameLast"], "format":"{0} {1}", "style" : " font-weight: bold; "},
+                       								{ "fields" : ["MLBAM_ID"], "format":"<a href='#' onclick='includePlayer({0});' >Include</a>", "style" : " font-weight: bold; "},
+                       		  																	  { "fields" : ["pos"], "format":"{0}", "style" : " font-weight: bold; "},                       		  
+                       		  																	  { "fields" : ["teamID"], "format":"{0}", "style" : " font-weight: bold; "},
+                                                                                     ]}
+                  };
+  var topColumnHeaders = ["Player","Exclude","Pos","Team"];
+
+  metricList  =[];
+
+  metric = new ReportMetric("age","Age", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.lowValGreen = true;
+  metric.colorCode = true;
+  metricList.push(metric);   
+  
+  metric = new ReportMetric("mRBI","RBI", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metricList.push(metric);   
+  
+  metric = new ReportMetric("mOPS","OPS", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metricList.push(metric);    
+  
+  metric = new ReportMetric("mSOA","K", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metricList.push(metric);      
+  
+  metric = new ReportMetric("mDERA","ERA", ReportMetric.numberFormat,colorGradRYG);
+  metric.computeStats(data);
+  metric.colorCode = true;  
+  metric.lowValGreen = true;  
+  metricList.push(metric);
+  
+  
+      
+  
+  //$("#mainSVG").after("<h5>hi</h5>");
+  
+  
+
+  excludeReport = new JJReport(hierarchData,levelDefs,"excludereport",metricList,"excludeReport", "Excluded");
+  excludeReport.rowMouseOver = "rowMouseOver";
+  excludeReport.rowMouseOut = "rowMouseOut";
+
+  
+  d3.select("#excludeTable").remove();
+  $("#mainReportDiv").append(excludeReport.render(topColumnHeaders,2,"excludeTable"));
+  expandLevel(1,'excludeTable');
+ //  updateZips();        
+}
+
 
 
 function updateYear() { 

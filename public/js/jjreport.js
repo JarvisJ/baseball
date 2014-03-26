@@ -1,4 +1,4 @@
-﻿function JJReport(nationData, levelDefs,cssClass,metricList,reportName) {
+﻿function JJReport(nationData, levelDefs,cssClass,metricList,reportName, title) {
     this.nationData = nationData;
     this.defs = levelDefs;
     this.cssClass = cssClass;
@@ -7,6 +7,8 @@
     this.populateDefs(1);
     this.click = this.toggleRow;
     this.$renderedReport = undefined;
+    this.tableID = undefined;
+    this.title = title;
 }
 
 // JJReport Prototype functions. Max start level is optional
@@ -29,8 +31,8 @@ JJReport.prototype.getDataTableRow = function(def, level,maxStartLevel) {
         retVal += that.getDataTableRow(childDef,level+1,maxStartLevel);
     });
     if(def.visible) {
-        var mover = this.rowMouseOver? this.rowMouseOver + "('" + def.clink +"', " + level + ",this);" : "";
-        var mout = this.rowMouseOut? this.rowMouseOut + "('" + def.clink +"', " + level + ",this);" : "";
+        var mover = this.rowMouseOver? this.rowMouseOver + "('" + def.clink +"', " + level + ",this, '" + this.tableID + "');" : "";
+        var mout = this.rowMouseOut? this.rowMouseOut + "('" + def.clink +"', " + level + ",this, '" + this.tableID + "');" : "";
         return retVal + "<tr id=\"l_" + level + def.clink + "\" class=\"level_" + level + " par_" + def.parent + "  " + def.clink + " rid_" + def.clink + " \" "+styleStr +"onClick=\"" + this.reportName + ".click('" + def.clink +"', " + level + ",this);\" onMouseOver=\"mOverHLightBtn(this); " + mover + " \" onMouseOut=\"mOutHLightBtn(this); " + mout + " \" "+ isOpenStr +" >" + def.header + this.getMetricColumns(def.value) + "</tr>";
     }
     else {
@@ -69,7 +71,7 @@ JJReport.prototype.toggleRow = function(clink,level,element) {
 JJReport.prototype.openRow = function(parentLink,level) {
 
     var that = this;
-    var $rowsToShow = $(".level_" + level + ".par_" + parentLink);
+    var $rowsToShow = $("#" + this.tableID + " > tbody > .level_" + level + ".par_" + parentLink);
     $rowsToShow.show();
   //  $rowsToHide.attr("isOpen","T");  
 };
@@ -77,7 +79,7 @@ JJReport.prototype.openRow = function(parentLink,level) {
 JJReport.prototype.hideDef = function(def,level) {
     def.visible=false;
     var that = this;
-    var $rowsToHide = $(".level_" + level + "." + def.clink);
+    var $rowsToHide = $("#" + this.tableID + " > tbody > .level_" + level + "." + def.clink);
     $rowsToHide.hide();
     $rowsToHide.attr("isOpen","F");
     
@@ -86,13 +88,19 @@ JJReport.prototype.hideDef = function(def,level) {
     });    
 };
 
-JJReport.prototype.render = function(topColumnHeaders,maxStartLevel) {
-    var retVal = "<table id=\"theTable\" class=\" " + this.cssClass + " sortable enableHierarchyToggling enableTermToggling\" border=\"1\" cellspacing=\"0\" cellpadding=\"2\" name='inputTbl' style='border: thin solid #F2F2F2;' >";
+JJReport.prototype.render = function(topColumnHeaders,maxStartLevel,tableID) {
+    var retVal = "<table id=\""+ tableID + "\" class=\" " + this.cssClass + " sortable enableHierarchyToggling enableTermToggling\" border=\"1\" cellspacing=\"0\" cellpadding=\"2\" name='inputTbl' style='border: thin solid #F2F2F2;' >";
+    this.tableID = tableID;
     
     var numCols = topColumnHeaders.length+metricList.length;
+    if(this.title) {
+     retVal += "<tr style='vertical-align:bottom;' >"
+     retVal += "<td colspan=" + numCols + " style='font-weight:bold;'  >" + this.title + "</td></tr>";   	    
+    }
+    
     retVal += "<tr style='vertical-align:bottom;' >"
-    retVal += "<td colspan=" + numCols + " ><span onClick='expandLevel(1);' onMouseOver='mOverHLightSpan(this)' onMouseOut='mOutHLightSpan(this)'>(-) Collapse All</span>&nbsp;"
-    retVal += "<span onClick='expandLevel(2);' onMouseOver='mOverHLightSpan(this)' onMouseOut='mOutHLightSpan(this)'>(+) Expand All</span>&nbsp;"
+    retVal += "<td colspan=" + numCols + " ><span onClick=\"expandLevel(1, '" + this.tableID  + "');\" onMouseOver='mOverHLightSpan(this)' onMouseOut='mOutHLightSpan(this)'>(-) Collapse All</span>&nbsp;"
+    retVal += "<span onClick=\"expandLevel(2, '" + this.tableID  + "');\" onMouseOver='mOverHLightSpan(this)' onMouseOut='mOutHLightSpan(this)'>(+) Expand All</span>&nbsp;"
     retVal += "</td>"
     retVal += "</tr>";    
     
