@@ -209,7 +209,7 @@ d3.json("/bb/exclusionList", function(error,eData) {
 	    d.mDERA = +d.mDERA;
 	    d.mSOA = +d.mSOA;
 	    d.pos = d.POS;
-	    
+	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)];
 	    if(!d.pos || d.pos =="") {
 		return; 
 	    }
@@ -274,13 +274,13 @@ function updateBatterViz(unfilteredData) {
       .data(data)
     .enter().append("circle")
       .attr("class", "dot")
-      .attr("r",  function(d) { return Math.sqrt(d.mSB); })
+      .attr("r",  function(d) { return Math.sqrt(d.mSB)*1.5; })
       .attr("cx", function(d) { return x(d.mAVG); })
       .style("stroke-width", "0.3px") 
       .attr("cy", function(d) { return y(d.mHR); })
       .attr("pos", function(d) { return d.pos; })
-      .attr("MLBID", function(d) { 
-         return "" + d.MLBAM_ID;
+      .attr("mlbid", function(d) { 
+         return "id-" + d.MLBAM_ID;
       })
       .on("mouseover",showPlayerData)
       .style("fill", fillCircles);
@@ -330,8 +330,8 @@ function updatePitcherViz(unfilteredData) {
       .style("stroke-width", "0.3px") 
       .attr("cy", function(d) { return y(d.mSOA); })
       .attr("pos", function(d) { return d.pos; })
-      .attr("MLBID", function(d) { 
-         return "" + d.MLBAM_ID;
+      .attr("mlbid", function(d) { 
+         return "id-" + d.MLBAM_ID;
       })
       .on("mouseover",showPitcherData)
       .style("fill", fillCircles);
@@ -384,7 +384,7 @@ function cleanseMLBPitcherData(year,data) {
 	    d.mDERA = +d.era;
 	    d.mSV = +d.sv;
 	    d.mWHIP = +d.whip;
-	    d.mIP = +d.p_ip;
+	    d.mIP = +d.ip;
 	    d.nameFirst = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameFirst;
 	    d.nameLast = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameLast; 
 	    d.teamID = d.team_abbrev;
@@ -402,18 +402,21 @@ function showPlayerData(d) {
         var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>AB</th><th>HR</th><th>R</th><th>RBI</th><th>SB</th><th>AVG</th><th>OPS</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mAB + "</td><td>" + d.mHR + "</td><td>" + d.mR + "</td><td>" + d.mRBI + "</td><td>" + d.mSB + "</td><td>" + d.mAVG + "</td><td>" + d.mOPS + "</td></tr></td></table>";
 
+        statsTable = "<table style=\" border: 0px none; \"  ><tr><td style=\" border: 0px none; \">" + statsTable + "</td>";        
         var team =  mlbData.batters["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.batters["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
-        statsTable += getMLBBatterData("2013", d);
-        statsTable += getMLBBatterData("2012", d);
-        statsTable += getMLBBatterData("2011", d);
-        statsTable += getMLBBatterData("Spring", d);
+
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBBatterData("2013", d) + "</td></tr>";
+        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBBatterData("2012", d) + "</td>";
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBBatterData("Spring", d) + "</td></tr>";
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBBatterData("2011", d) + "</td></tr>";        
+
         d3.select("#hoverDiv")
               .attr("class","h2text")
             //  .style("position","absolute")
             //  .style("left","800px")
            //   .style("top","400px")
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
+              .html( "<table style=\" border: 0px none; \" ><tr><td style=\" border: 0px none; \" ><table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table></td><td style=\" border: 0px none; \" >"+statsTable + "</td></tr></table>");
 
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
@@ -454,19 +457,24 @@ function showPitcherData(d) {
         var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>IP</th><th>W</th><th>SV</th><th>K</th><th>ERA</th><th>WHIP</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mIP + "</td><td>" + d.mW + "</td><td>" + d.mSV + "</td><td>" + d.mSOA + "</td><td>" + d.mDERA + "</td><td>" + d.mWHIP + "</td></tr></td></table>";
 
+        statsTable = "<table style=\" border: 0px none; \"  ><tr><td style=\" border: 0px none; \">" + statsTable + "</td>";        
+ 
         var team =  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
-        statsTable += getMLBPitcherData("2013", d);
-        statsTable += getMLBPitcherData("2012", d);
-        statsTable += getMLBPitcherData("2011", d);
-        statsTable += getMLBPitcherData("Spring", d);
+
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBPitcherData("2013", d) + "</td></tr>";
+        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBPitcherData("2012", d) + "</td>";
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBPitcherData("Spring", d) + "</td></tr>";
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBPitcherData("2011", d) + "</td></tr>";        
+        
+        
         d3.select("#hoverDiv")
               .attr("class","h2text")
             //  .style("position","absolute")
             //  .style("left","800px")
            //   .style("top","400px")
               .style("display", "")
-              .html("<table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div>" +  d.nameFirst  + " " + d.nameLast + "</div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table>"+statsTable);
-
+              .html( "<table style=\" border: 0px none; \" ><tr><td style=\" border: 0px none; \" ><table cellspacing=\"1\" cellpadding=\"1\" style=\" background-color : white \"  ><tr><td>" + img +"</td><td style=\"font-weight:bold;\"><div><a href='http://mlb.mlb.com/team/player.jsp?player_id=" + d.MLBAM_ID + "'>" +  d.nameFirst  + " " + d.nameLast + "</a></div><div>" + team + "</div><div>Age: " + d.age + "</div></td>" + closeStr + "</tr><tr><td colspan=\"2\" >" + d.teamID + "</td></tr></table></td><td style=\" border: 0px none; \" >"+statsTable + "</td></tr></table>");
+              
        d3.select("a#hoverClose").on("click", function() {
             d3.select("#hoverDiv")
                 .style("display", "none");
@@ -527,7 +535,11 @@ function hidePlayerData() {
 }
 
 function isPlayerExcluded(d) {
-   return d.excluded && d.excluded == "t";
+   return (d.excluded && d.excluded == "t")
+   		|| (d.lg && d.lg == "NL") 
+   		|| (d.LG && d.LG == "NL")  
+   		|| (d.POS && (d.POS == "AP" || d.POS=="BP"))    		   		    		   		
+   		|| (d.league && d.league=="NL");
 }
 
 function excludePlayer(mlbamID) {
@@ -594,15 +606,15 @@ function rowMouseOver(clink,level,element) {
        var rFunction;
        
             if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
-            	if(  mlbData.pitchers["ySpring"].pHash[playerID] ) {
-            		showPitcherData(mlbData.pitchers["ySpring"].pHash[playerID] );
-            		rFunction= function(d) { return Math.sqrt(d.mW)*2; }
+            	if(  mlbData.pitchers["y2014"].pHash[playerID] ) {
+            		showPitcherData(mlbData.pitchers["y2014"].pHash[playerID] );
+            		rFunction= function(d) { return Math.sqrt(d.mW); }
             	}
             }
             else {
-            	if(  mlbData.batters["ySpring"].pHash[playerID] ) {
-            		showPlayerData(mlbData.batters["ySpring"].pHash[playerID] );
-            		rFunction= function(d) { return Math.sqrt(d.mSB)*2; }
+            	if(  mlbData.batters["y2014"].pHash[playerID] ) {
+            		showPlayerData(mlbData.batters["y2014"].pHash[playerID] );
+            		rFunction= function(d) { return Math.sqrt(d.mSB)*1.5; }
             	}
             	
             }       	 
@@ -621,35 +633,10 @@ function rowMouseOver(clink,level,element) {
         // 
        //  counties.selectAll("path").style("stroke-width", "0.0px");
        
-       
-       if(metricVal != undefined) {
-             var slot = myMetric.lowValGreen? 4 : 0; // Math.max(Math.floor((district[myMetric.fieldName]-myMetric.fivePctVal)/((myMetric.ninetyFivePctVal-myMetric.fivePctVal)/100)),0);
-        
-            if(metricVal > myMetric.eightyPctVal) {
-                slot=myMetric.lowValGreen? 0 : 4;
-            }
-            else if(metricVal > myMetric.sixtyPctVal) {
-                slot=myMetric.lowValGreen? 1 : 3;
-            }
-            else if(metricVal > myMetric.fortyPctVal) {
-                slot=myMetric.lowValGreen? 2 : 2;
-            } 
-            else if(metricVal > myMetric.twentyPctVal) {
-                slot=myMetric.lowValGreen? 3 : 1;
-            }                    
-               
-        
-          //  colorGradRYG
-            fillColor = colorGradRYG[slot];      
-       }
-       else {     
-         fillColor = "black";    
-       }
             
-        svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
-                        .style("stroke-width", "1px") 
-                        .attr("r",  rFunction)                             
-                        .style("fill", fillColor);    
+        svg.selectAll("[mlbid='id"+clink+"']")
+                        .style("stroke-width", "2px") 
+                        .attr("r",  rFunction) ;    
     }    
     if(level==1) {
        var fillColor = "black";
@@ -690,31 +677,34 @@ function rowMouseOver(clink,level,element) {
        //  counties.selectAll("path").style("stroke-width", "0.0px");
             
         // fillColor = "brown";       
-        svg.selectAll("[pos='"+clink.replace("-","")+"']")
-                        .style("stroke-width", "0.3px") 
-                        .attr("r",  rFunction)                     
-                        .style("fill", "red");    
+    //    svg.selectAll("[pos='"+clink.replace("-","")+"']")
+     //                   .style("stroke-width", "0.3px") 
+      //                  .attr("r",  rFunction)                     
+       //                 .style("fill", "red");
+         svg.selectAll("[pos]")              
+                         .style("display", "none");        
+         svg.selectAll("[pos='"+clink.replace("-","")+"']")             
+                         .style("display", "");            
     }       
 }
-
+                                                                                 
 function rowMouseOut(clink,level,element) {
 
     if(level==2) {
-        svg.selectAll("[MLBID='"+clink.replace("-","")+"']")
+        svg.selectAll("[mlbid='id"+clink+"']")
                         .style("stroke-width", "0.3px") 
                         .style("fill", fillCircles  );        
     }       
     if(level==1) {
        var rFunction;
        if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
-       	       rFunction= function(d) { return Math.sqrt(d.mW)*2; }
+       	       rFunction= function(d) { return Math.sqrt(d.mW); }
        }
        else {
-            rFunction= function(d) { return Math.sqrt(d.mSB)*2; }
+            rFunction= function(d) { return Math.sqrt(d.mSB)*1.5; }
        }     	    
         svg.selectAll("[pos='"+clink.replace("-","")+"']")
-                        .style("stroke-width", "0.3px") 
-                        .attr("r",  rFunction)                     
+                        .style("stroke-width", "0.3px")                    
                         .style("fill",  fillCircles);      
     }         
 }
@@ -938,6 +928,9 @@ function updateColors() {
    
    d3.select("h2 span").text( measurementPulldown[0][0].options[measurementPulldown[0][0].selectedIndex].text) ;
  //  YTD Pct Growth -- Dealer Purchases (yellow ~100%, green >100%, red <100%)
+ 
+   svg.selectAll("[pos]")             
+              .style("display", "");    
    
 }
 
