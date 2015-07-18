@@ -20,6 +20,7 @@ body {
 table,th,td
 {
 border: 1px solid black;
+font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 </style>
@@ -164,24 +165,27 @@ var svg = d3.select("#viz").append("svg")
   .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-    var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[],"y2014":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": [],"y2014":[]} };
+    var mlbData = { "pitchers":{"y2012": [],"y2011": [],"ySpring": [],"y2013":[],"y2014":[],"y2015":[]} , "batters": {"y2012": [],"y2011": [],"ySpring": [],"y2013": [],"y2014":[],"y2015":[]} };
  
 var exclusionList;
 var closerList;
 
 d3.json("/bb/exclusionList", function(error,eData) {    
 	exclusionList = eData;
-	d3.json("/bb/batters/2014", function(error, data) {	
-			mlbData.batters["y2014"].pHash = {};
+	d3.json("/bb/batters/2015", function(error, data) {	
+			mlbData.batters["y2015"].pHash = {};
 	  data.forEach(function(d) {
 	    d.mHR = +d.mHR;
 	    d.mAVG = +d.mAVG;
-	    mlbData.batters["y2014"].pHash[d.MLBAM_ID] = d;
-	    mlbData.batters["y2014"].push(d);
+	    mlbData.batters["y2015"].pHash[d.MLBAM_ID] = d;
+	    mlbData.batters["y2015"].push(d);
 	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 
 	  });
  	  updateBatterViz(data);
 	  
+    d3.json("/bb/batters/2014", function(error, data) {
+        cleanseMLBBatterData(2014,data);
+    });
 	  
 		d3.json("/bb/batters/2013", function(error, data) {
 				cleanseMLBBatterData(2013,data);
@@ -204,8 +208,8 @@ d3.json("/bb/exclusionList", function(error,eData) {
 	});
 	d3.json("/bb/closers", function(error,closerData) { 
 		closerList = closerData;
-		d3.json("/bb/pitchers/2014", function(error, data) {	
-			  mlbData.pitchers["y2014"].pHash = {};
+		d3.json("/bb/pitchers/2015", function(error, data) {	
+			  mlbData.pitchers["y2015"].pHash = {};
 			  data.forEach(function(d) {
 			    d.mDERA = +d.mDERA;
 			    d.mSOA = +d.mSOA;
@@ -214,11 +218,14 @@ d3.json("/bb/exclusionList", function(error,eData) {
 			    if(!d.pos || d.pos =="") {
 				return; 
 			    }
-			    mlbData.pitchers["y2014"].pHash[d.MLBAM_ID] = d;
-			    mlbData.pitchers["y2014"].push(d);
+			    mlbData.pitchers["y2015"].pHash[d.MLBAM_ID] = d;
+			    mlbData.pitchers["y2015"].push(d);
 			  });
 			createClosersReport( data.filter(function(d){ return isPlayerCloser(d); }));
     
+      d3.json("/bb/pitchers/2014", function(error, data) {
+          cleanseMLBPitcherData(2014,data);
+      });    
 		  
 			d3.json("/bb/pitchers/2013", function(error, data) {
 					cleanseMLBPitcherData(2013,data);
@@ -352,7 +359,7 @@ function cleanseMLBBatterData(year,data) {
 	data.forEach(function(d) {
 	    d.MLBAM_ID = d.player_id;    	
 	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 
-	    if (!mlbData.batters["y2014"].pHash[d.MLBAM_ID]) {
+	    if (!mlbData.batters["y2015"].pHash[d.MLBAM_ID]) {
 				return;
 	    }
 	    d.mHR = +d.hr;
@@ -363,8 +370,8 @@ function cleanseMLBBatterData(year,data) {
 	    d.mRBI = +d.rbi;
 	    d.mOPS = +d.ops;
 	    d.mSB = +d.sb;
-	    d.nameFirst = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameFirst;
-	    d.nameLast = mlbData.batters["y2014"].pHash[d.MLBAM_ID].nameLast; 
+	    d.nameFirst = mlbData.batters["y2015"].pHash[d.MLBAM_ID].nameFirst;
+	    d.nameLast = mlbData.batters["y2015"].pHash[d.MLBAM_ID].nameLast; 
 	    d.teamID = d.team_abbrev;
 	    d.pos = d.pos == "CF" ? "OF" : (d.pos == "RF" ? "OF" : (d.pos == "LF" ? "OF" : d.pos));
 	
@@ -382,7 +389,7 @@ function cleanseMLBPitcherData(year,data) {
 	data.forEach(function(d) {
 	    d.MLBAM_ID = d.player_id;    
 	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)]; 	    
-	    if (!mlbData.pitchers["y2014"].pHash[d.MLBAM_ID]) {
+	    if (!mlbData.pitchers["y2015"].pHash[d.MLBAM_ID]) {
 				return;
 	    }
 	    d.mSOA = +d.so;
@@ -392,10 +399,10 @@ function cleanseMLBPitcherData(year,data) {
 	    d.mSV = +d.sv;
 	    d.mWHIP = +d.whip;
 	    d.mIP = +d.ip;
-	    d.nameFirst = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameFirst;
-	    d.nameLast = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].nameLast; 
+	    d.nameFirst = mlbData.pitchers["y2015"].pHash[d.MLBAM_ID].nameFirst;
+	    d.nameLast = mlbData.pitchers["y2015"].pHash[d.MLBAM_ID].nameLast; 
 	    d.teamID = d.team_abbrev;
-	    d.pos = mlbData.pitchers["y2014"].pHash[d.MLBAM_ID].pos;
+	    d.pos = mlbData.pitchers["y2015"].pHash[d.MLBAM_ID].pos;
 	    d.excluded = exclusionList.theList[getExclusionListID(d.MLBAM_ID)];    
 	    mlbData.pitchers["y" + year].pHash[d.MLBAM_ID] = d;
 	    mlbData.pitchers["y" + year].push(d);  
@@ -403,19 +410,20 @@ function cleanseMLBPitcherData(year,data) {
 }
 
 function showPlayerData(d) {
-	     d =     mlbData.batters["y2014"].pHash[d.MLBAM_ID];
+	     d =     mlbData.batters["y2015"].pHash[d.MLBAM_ID];
         var closeStr = "<td align=\"right\" ><a id=\"hoverClose\">Close</a><br /></td>";
         var img = "<img src='http://mlb.mlb.com/images/players/mugshot/ph_" + d.MLBAM_ID +".jpg'></img>"
-        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>AB</th><th>HR</th><th>R</th><th>RBI</th><th>SB</th><th>AVG</th><th>OPS</th></tr>";
+        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2015 Guru Projections</th></tr><tr><th>AB</th><th>HR</th><th>R</th><th>RBI</th><th>SB</th><th>AVG</th><th>OPS</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mAB + "</td><td>" + d.mHR + "</td><td>" + d.mR + "</td><td>" + d.mRBI + "</td><td>" + d.mSB + "</td><td>" + d.mAVG + "</td><td>" + d.mOPS + "</td></tr></td></table>";
 
         statsTable = "<table style=\" border: 0px none; \"  ><tr><td style=\" border: 0px none; \">" + statsTable + "</td>";        
         var team =  mlbData.batters["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.batters["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
 
-        statsTable += "<td style=\" border: 0px none; \">" +  getMLBBatterData("2013", d) + "</td></tr>";
-        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBBatterData("2012", d) + "</td>";
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBBatterData("2014", d) + "</td></tr>";
+        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBBatterData("2013", d) + "</td>";
         statsTable += "<td style=\" border: 0px none; \">" +  getMLBBatterData("Spring", d) + "</td></tr>";
-        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBBatterData("2011", d) + "</td></tr>";        
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBBatterData("2012", d) + "</td></tr>";        
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBBatterData("2011", d) + "</td></tr>";
 
         d3.select("#hoverDiv")
               .attr("class","h2text")
@@ -458,22 +466,22 @@ function showPlayerData(d) {
 }
 
 function showPitcherData(d) {
-	     d =     mlbData.pitchers["y2014"].pHash[d.MLBAM_ID];
+	     d =     mlbData.pitchers["y2015"].pHash[d.MLBAM_ID];
         var closeStr = "<td align=\"right\" ><a id=\"hoverClose\">Close</a><br /></td>";
         var img = "<img src='http://mlb.mlb.com/images/players/mugshot/ph_" + d.MLBAM_ID +".jpg'></img>"
-        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2014 Guru Projections</th></tr><tr><th>IP</th><th>W</th><th>SV</th><th>K</th><th>ERA</th><th>WHIP</th></tr>";
+        var statsTable = "<table  cellspacing=\"1\" cellpadding=\"1\" style=\" border: 1px solid black; background-color : white \" ><tr><th colspan='7'>2015 Guru Projections</th></tr><tr><th>IP</th><th>W</th><th>SV</th><th>K</th><th>ERA</th><th>WHIP</th></tr>";
         statsTable += "<tr style\" font: bold \" ><td>" + d.mIP + "</td><td>" + d.mW + "</td><td>" + d.mSV + "</td><td>" + d.mSOA + "</td><td>" + d.mDERA + "</td><td>" + d.mWHIP + "</td></tr></td></table>";
 
         statsTable = "<table style=\" border: 0px none; \"  ><tr><td style=\" border: 0px none; \">" + statsTable + "</td>";        
  
         var team =  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID] ?  mlbData.pitchers["ySpring"].pHash[d.MLBAM_ID].team_name : d.teamID;
 
-        statsTable += "<td style=\" border: 0px none; \">" +  getMLBPitcherData("2013", d) + "</td></tr>";
-        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBPitcherData("2012", d) + "</td>";
+        statsTable += "<td style=\" border: 0px none; \">" +  getMLBPitcherData("2014", d) + "</td></tr>";
+        statsTable += "<tr><td style=\" border: 0px none; \">" + getMLBPitcherData("2013", d) + "</td>";
         statsTable += "<td style=\" border: 0px none; \">" +  getMLBPitcherData("Spring", d) + "</td></tr>";
-        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBPitcherData("2011", d) + "</td></tr>";        
-        
-        
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBPitcherData("2012", d) + "</td></tr>";
+        statsTable += "<tr><td colspan='2' style=\" border: 0px none; \">" + getMLBPitcherData("2011", d) + "</td></tr>";
+
         d3.select("#hoverDiv")
               .attr("class","h2text")
             //  .style("position","absolute")
@@ -563,6 +571,10 @@ function isPlayerExcluded(d,onlyUseFlag) {
 function excludePlayer(mlbamID) {
   if(mlbamID) {
   	exclusionList.theList[getExclusionListID(mlbamID)] = "t";
+
+    if(mlbData.batters["y2015"].pHash[mlbamID] ) {
+      mlbData.batters["y2015"].pHash[mlbamID].excluded = "t";
+    }
  
   	if(mlbData.batters["y2014"].pHash[mlbamID] ) {
   		mlbData.batters["y2014"].pHash[mlbamID].excluded = "t";
@@ -579,6 +591,10 @@ function excludePlayer(mlbamID) {
   	if(mlbData.batters["ySpring"].pHash[mlbamID] ) {
   		mlbData.batters["ySpring"].pHash[mlbamID].excluded = "t";
   	}  	
+
+    if(mlbData.pitchers["y2015"].pHash[mlbamID] ) {
+      mlbData.pitchers["y2015"].pHash[mlbamID].excluded = "t";
+    }
 
   	if(mlbData.pitchers["y2014"].pHash[mlbamID] ) {
   		mlbData.pitchers["y2014"].pHash[mlbamID].excluded = "t";
@@ -613,6 +629,9 @@ function includePlayer(mlbamID) {
   if(mlbamID) {
   	exclusionList.theList[getExclusionListID(mlbamID)] = undefined;
  
+    if(mlbData.pitchers["y2015"].pHash[mlbamID] ) {
+      mlbData.pitchers["y2015"].pHash[mlbamID].excluded = "t";
+    }
   	if(mlbData.batters["y2014"].pHash[mlbamID] ) {
   		mlbData.batters["y2014"].pHash[mlbamID].excluded = undefined;
   	}
@@ -629,7 +648,12 @@ function includePlayer(mlbamID) {
   		mlbData.batters["ySpring"].pHash[mlbamID].excluded = undefined;
   	}  	
 
-  	if(mlbData.pitchers["y2014"].pHash[mlbamID] ) {
+
+    if(mlbData.pitchers["y2015"].pHash[mlbamID] ) {
+      mlbData.pitchers["y2015"].pHash[mlbamID].excluded = undefined;
+    }
+
+    if(mlbData.pitchers["y2014"].pHash[mlbamID] ) {
   		mlbData.pitchers["y2014"].pHash[mlbamID].excluded = undefined;
   	}
   	if(mlbData.pitchers["y2013"].pHash[mlbamID] ) {
@@ -673,14 +697,14 @@ function rowMouseOver(clink,level,element,tableID) {
        var rFunction;
        
             if (posPulldown[0][0].options[posPulldown[0][0].selectedIndex].value == "pitchers") {       
-            	if(  mlbData.pitchers["y2014"].pHash[playerID] ) {
-            		showPitcherData(mlbData.pitchers["y2014"].pHash[playerID] );
+            	if(  mlbData.pitchers["y2015"].pHash[playerID] ) {
+            		showPitcherData(mlbData.pitchers["y2015"].pHash[playerID] );
             		rFunction= function(d) { return Math.sqrt(d.mW); }
             	}
             }
             else {
-            	if(  mlbData.batters["y2014"].pHash[playerID] ) {
-            		showPlayerData(mlbData.batters["y2014"].pHash[playerID] );
+            	if(  mlbData.batters["y2015"].pHash[playerID] ) {
+            		showPlayerData(mlbData.batters["y2015"].pHash[playerID] );
             		rFunction= function(d) { return Math.sqrt(d.mSB)*1.5; }
             	}
             	
@@ -847,11 +871,12 @@ function createBatterReport(data) {
          .attr("label",function(d){return d.header});            
   measurementPulldown.on("change", updateColors);        
       
-  var yearList = [{"fieldName": "2014","header":"2014 Projections"},
+  var yearList = [{"fieldName": "2015","header":"2015 Projections"},
+                {"fieldName": "2014","header":"2014 Actuals"},
   	  					{"fieldName": "2013","header":"2013 Actuals"},   
   	  					{"fieldName": "2012","header":"2012 Actuals"}, 
   	  					{"fieldName": "2011","header":"2011 Actuals"},
-						{"fieldName": "Spring","header":"Spring Training 2014"}  	];  	  	  					
+						{"fieldName": "Spring","header":"Spring Training 2015"}  	];  	  	  					
   yearPulldown.selectAll("option")
       .data(yearList).enter()
        .append("option") 
@@ -983,41 +1008,41 @@ function createClosersReport(data) {
                   };
   var topColumnHeaders = ["Player","Exclude","Pos","Team"];
 
-  metricList  =[];
+  var closersMetricList  =[];
 
   metric = new ReportMetric("age","Age", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.lowValGreen = true;
   metric.colorCode = true;
-  metricList.push(metric);   
+  closersMetricList.push(metric);   
   
   metric = new ReportMetric("mW","Wins", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
  // metric.lowValGreen = true;
   metric.colorCode = true;
-  metricList.push(metric); 
+  closersMetricList.push(metric); 
   
   metric = new ReportMetric("mSV","Saves", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
-  metricList.push(metric);  
+  closersMetricList.push(metric);  
   
   metric = new ReportMetric("mSOA","K", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
-  metricList.push(metric);      
+  closersMetricList.push(metric);      
   
   metric = new ReportMetric("mDERA","ERA", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
   metric.lowValGreen = true;  
-  metricList.push(metric);
+  closersMetricList.push(metric);
   
   metric = new ReportMetric("mWHIP","WHIP", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;
   metric.lowValGreen = true;  
-  metricList.push(metric);     
+  closersMetricList.push(metric);     
      
       
   
@@ -1025,7 +1050,7 @@ function createClosersReport(data) {
   
   
 
-  closerReport = new JJReport(hierarchData,levelDefs,"closerreport",metricList,"closerReport", "Closers");
+  closerReport = new JJReport(hierarchData,levelDefs,"closerreport",closersMetricList,"closerReport", "Closers");
   closerReport.rowMouseOver = "rowMouseOver";
   closerReport.rowMouseOut = "rowMouseOut";
 
@@ -1052,34 +1077,34 @@ function createExcludedReport(data) {
                   };
   var topColumnHeaders = ["Player","Exclude","Pos","Team"];
 
-  metricList  =[];
+  exMetricList  =[];
 
   metric = new ReportMetric("age","Age", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.lowValGreen = true;
   metric.colorCode = true;
-  metricList.push(metric);   
+  exMetricList.push(metric);   
   
   metric = new ReportMetric("mRBI","RBI", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
-  metricList.push(metric);   
+  exMetricList.push(metric);   
   
   metric = new ReportMetric("mOPS","OPS", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
-  metricList.push(metric);    
+  exMetricList.push(metric);    
   
   metric = new ReportMetric("mSOA","K", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
-  metricList.push(metric);      
+  exMetricList.push(metric);      
   
   metric = new ReportMetric("mDERA","ERA", ReportMetric.numberFormat,colorGradRYG);
   metric.computeStats(data);
   metric.colorCode = true;  
   metric.lowValGreen = true;  
-  metricList.push(metric);
+  exMetricList.push(metric);
   
   
       
@@ -1088,7 +1113,7 @@ function createExcludedReport(data) {
   
   
 
-  excludeReport = new JJReport(hierarchData,levelDefs,"excludereport",metricList,"excludeReport", "Excluded");
+  excludeReport = new JJReport(hierarchData,levelDefs,"excludereport",exMetricList,"excludeReport", "Excluded");
   excludeReport.rowMouseOver = "rowMouseOver";
   excludeReport.rowMouseOut = "rowMouseOut";
 
